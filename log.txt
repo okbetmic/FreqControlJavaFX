@@ -1,0 +1,8 @@
+[2020-05-02 05:47:05] [INFO] logger started 
+[2020-05-02 05:47:08] [INFO] created connection task (deviceState=NC and controllerAction=BEGIN_COMM) 
+[2020-05-02 05:47:10] [INFO] connection with COM11 successful 
+[2020-05-02 05:47:10] [WARNING] task cancelled 
+[2020-05-02 05:47:10] [INFO] task succeeded (deviceState=SB and controllerAction=PING) 
+[2020-05-02 05:47:10] [INFO] created ping task (deviceState=SB and controllerAction=PING) 
+[2020-05-02 05:47:17] [WARNING] connection lost 
+[2020-05-02 05:47:18] [INFO] task succeeded (deviceState=NC and controllerAction=PING) 

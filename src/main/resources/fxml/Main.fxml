@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ChoiceBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane fx:id="main_pane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="nipel.FreqControl.Controller.MainController">
+   <children>
+      <VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="410.0" prefWidth="616.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+         <children>
+            <AnchorPane fx:id="top_pane" onMouseDragged="#top_on_mouse_dragged" onMousePressed="#top_on_mouse_pressed">
+               <children>
+                  <HBox AnchorPane.rightAnchor="0.0">
+                     <children>
+                        <Button fx:id="minimize_btn" mnemonicParsing="false" onAction="#minimize_btn_action" text="_">
+                           <font>
+                              <Font name="Roboto" size="12.0" />
+                           </font>
+                        </Button>
+                        <Button fx:id="close_btn" mnemonicParsing="false" onAction="#close_btn_action" text="x">
+                           <font>
+                              <Font name="Roboto" size="12.0" />
+                           </font>
+                        </Button>
+                     </children>
+                  </HBox>
+               </children>
+            </AnchorPane>
+            <HBox prefHeight="402.0" prefWidth="616.0">
+               <children>
+                  <TabPane fx:id="tabPane" maxHeight="-Infinity" prefHeight="387.0" prefWidth="355.0" tabClosingPolicy="UNAVAILABLE">
+                    <tabs>
+                      <Tab text="Single Frequency">
+                         <content>
+                            <fx:include fx:id="singleFreqTab" source="SingleFreqTab.fxml" />
+                         </content>
+                      </Tab>
+                      <Tab text="Sweep">
+                         <content>
+                            <fx:include fx:id="sweepTab" source="SweepTab.fxml" />
+                         </content>
+                      </Tab>
+                    </tabs>
+                  </TabPane>
+                  <Separator orientation="VERTICAL" prefHeight="200.0" />
+                  <AnchorPane prefHeight="200.0" prefWidth="200.0">
+                     <children>
+                        <VBox fx:id="device_pane" prefHeight="387.0" prefWidth="277.0">
+                           <children>
+                              <AnchorPane fx:id="title_pane" maxHeight="-Infinity" minHeight="-Infinity" prefHeight="70.0">
+                                 <children>
+                                    <Label text="AD9850 Control" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="5.0">
+                                       <font>
+                                          <Font name="Roboto" size="35.0" />
+                                       </font>
+                                       <padding>
+                                          <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
+                                       </padding>
+                                    </Label>
+                                 </children>
+                              </AnchorPane>
+                              <Separator prefWidth="200.0" />
+                              <AnchorPane>
+                                 <children>
+                                    <Label layoutX="103.0" layoutY="6.0" styleClass="group_title_label" text="Connection" />
+                                    <ChoiceBox fx:id="device_list" layoutX="31.0" layoutY="42.0" prefHeight="24.0" prefWidth="81.0" />
+                                    <Button layoutX="156.0" layoutY="42.0" mnemonicParsing="false" onAction="#connect_btn_action">
+                                       <graphic>
+                                          <FontAwesomeIconView glyphName="CHEVRON_RIGHT" />
+                                       </graphic>
+                                    </Button>
+                                    <Button layoutX="120.0" layoutY="42.0" mnemonicParsing="false" onAction="#refresh_btn_action" AnchorPane.leftAnchor="120.0">
+                                       <graphic>
+                                          <FontAwesomeIconView glyphName="REFRESH" />
+                                       </graphic>
+                                    </Button>
+                                 </children>
+                              </AnchorPane>
+                                 <AnchorPane fx:id="info_pane">
+                                 <children>
+                                    <Label layoutX="88.0" layoutY="14.0" styleClass="group_title_label" text="Info" />
+                                    <GridPane fx:id="info_table" alignment="CENTER" layoutY="43.0" prefHeight="154.0" prefWidth="210.0" styleClass="info_label" AnchorPane.topAnchor="45.0">
+                                      <columnConstraints>
+                                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                                      </columnConstraints>
+                                      <rowConstraints>
+                                          <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                                      </rowConstraints>
+                                       <children>
+                                          <Label alignment="CENTER" contentDisplay="CENTER" prefHeight="20.0" prefWidth="213.0" text="Mode" textAlignment="CENTER" GridPane.rowIndex="1" />
+                                          <Label fx:id="mode_info_label" alignment="CENTER" contentDisplay="CENTER" prefHeight="20.0" prefWidth="164.0" text="-" textAlignment="CENTER" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                                          <Label alignment="CENTER" contentDisplay="CENTER" prefHeight="20.0" prefWidth="162.0" text="Connected" textAlignment="CENTER" />
+                                          <Label fx:id="connected_info_label" alignment="CENTER" contentDisplay="CENTER" prefHeight="20.0" prefWidth="169.0" text="not connected" textFill="RED" GridPane.columnIndex="1" />
+                                          <Label fx:id="progress_info_label" alignment="CENTER" contentDisplay="CENTER" disable="true" prefHeight="20.0" prefWidth="181.0" text="Progress" textAlignment="CENTER" GridPane.rowIndex="2" />
+                                          <ProgressBar fx:id="progress_bar_info" disable="true" prefHeight="26.0" prefWidth="168.0" progress="0.0" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                                       </children>
+                                    </GridPane>
+                                 </children>
+                              </AnchorPane>
+                              <AnchorPane prefHeight="200.0" prefWidth="200.0">
+                                 <children>
+                                    <Button alignment="CENTER" layoutX="109.0" layoutY="2.0" mnemonicParsing="false" onAction="#sendBtnAction" text="Send" textOverrun="CLIP">
+                                       <graphic>
+                                          <FontAwesomeIconView glyphName="SEND" />
+                                       </graphic>
+                                    </Button>
+                                 </children>
+                              </AnchorPane>
+                           </children>
+                        </VBox>
+                     </children>
+                  </AnchorPane>
+               </children></HBox>
+         </children>
+      </VBox>
+   </children>
+</AnchorPane>

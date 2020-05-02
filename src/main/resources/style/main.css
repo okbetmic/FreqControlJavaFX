@@ -1,0 +1,57 @@
+@font-face {
+    -fx-font-family: 'Roboto';
+    src: url('font/Roboto-Regular.ttf');
+}
+
+* {
+    // цвета
+
+    //синий
+    -fx-pr-dark: #373737;
+    -fx-pr-light: #8e8e8e;
+    -fx-pr-default: #616161;
+    //оранжевый
+    -fx-sc-dark: #c79100;
+    -fx-sc-light: #fff350;
+    -fx-sc-default: #ffc107;
+    //серый
+    -fx-base-dark: #BDBDBD;
+    -fx-base-default: #E0E0E0;
+
+    //шрифт
+    -fx-font-family: Robot;
+    -fx-font-smoothing-type: gray;
+}
+
+#main_pane {
+    -fx-background-color: -fx-base-default;
+}
+
+#top_pane { //верхняя панель с кнопками закрыть/свернуть
+    -fx-background-color: -fx-pr-dark;
+}
+
+#title_pane { //окно заголовка
+    -fx-background-color: -fx-pr-default;
+    -fx-pref-height: 70px;
+    -fx-max-height: 70px;
+}
+
+.tab-pane *.tab-header-background {  //панель вкладок
+}
+
+.tab-pane *.tab-content-area {
+
+}
+
+.tab-pane {
+}
+
+.tab {
+    -fx-background-color: -fx-base-default;
+    -fx-font-size: 15px;
+
+    -fx-min-height: 40px;
+    -fx-pref-height: 40px;
+}
+
