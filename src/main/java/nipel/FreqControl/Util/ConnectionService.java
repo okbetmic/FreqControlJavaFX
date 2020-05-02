@@ -4,6 +4,8 @@ import com.fazecast.jSerialComm.SerialPort;
 import javafx.concurrent.Service;
 import javafx.concurrent.Task;
 
+import java.io.Serial;
+import java.sql.Array;
 import java.util.Arrays;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
@@ -72,8 +74,20 @@ public class ConnectionService extends Service<String> {
 
         serialPort.writeBytes(buffer, 7);
         serialPort.readBytes(buffer, 1);
-        if (buffer[0] == deviceActions.get("READY_B"))
+        if (buffer[0] == deviceActions.get("READY_B")) {
+            System.out.println("java");
+            for (int i = 0; i < 4; i++) {
+                System.out.print(String.format("%8s", Integer.toBinaryString(buffer[5 - i] & 0xFF)).replace(' ', '0')  + "\t");
+            }
+            Arrays.fill(buffer, (byte) 0);
+            serialPort.readBytes(buffer, 4);
+            System.out.println("\nardu");
+            for (int i = 0; i < 4; i++) {
+                System.out.print(String.format("%8s", Integer.toBinaryString(buffer[3 - i] & 0xFF)).replace(' ', '0') + "\t");
+            }
+            System.out.println("\n");
             return true;
+        }
         return false;
     }
 
@@ -147,7 +161,7 @@ public class ConnectionService extends Service<String> {
                         if (ping()) {
                             switch (controllerAction) {
                                 case PING:
-                                    System.out.println("ping");
+                                    //System.out.println("ping");
                                     break;
                                 case SEND_SF:
                                     log.info("sending frequency " + deviceSettings.freq);

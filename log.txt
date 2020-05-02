@@ -1,8 +1,22 @@
-[2020-05-02 05:47:05] [INFO] logger started 
-[2020-05-02 05:47:08] [INFO] created connection task (deviceState=NC and controllerAction=BEGIN_COMM) 
-[2020-05-02 05:47:10] [INFO] connection with COM11 successful 
-[2020-05-02 05:47:10] [WARNING] task cancelled 
-[2020-05-02 05:47:10] [INFO] task succeeded (deviceState=SB and controllerAction=PING) 
-[2020-05-02 05:47:10] [INFO] created ping task (deviceState=SB and controllerAction=PING) 
-[2020-05-02 05:47:17] [WARNING] connection lost 
-[2020-05-02 05:47:18] [INFO] task succeeded (deviceState=NC and controllerAction=PING) 
+[2020-05-02 16:17:01] [INFO] logger started 
+[2020-05-02 16:17:04] [INFO] created connection task (deviceState=NC and controllerAction=BEGIN_COMM) 
+[2020-05-02 16:17:05] [INFO] connection with COM11 successful 
+[2020-05-02 16:17:05] [WARNING] task cancelled 
+[2020-05-02 16:17:05] [INFO] task succeeded (deviceState=SB and controllerAction=PING) 
+[2020-05-02 16:17:05] [INFO] created ping task (deviceState=SB and controllerAction=PING) 
+[2020-05-02 16:17:06] [INFO] sending frequency 5000 
+[2020-05-02 16:17:07] [INFO] data transfer successful 
+[2020-05-02 16:17:12] [INFO] sending frequency 50000 
+[2020-05-02 16:17:12] [INFO] data transfer successful 
+[2020-05-02 16:17:18] [INFO] sending frequency 2000 
+[2020-05-02 16:17:18] [INFO] data transfer successful 
+[2020-05-02 16:17:21] [INFO] sending frequency 3000 
+[2020-05-02 16:17:21] [INFO] data transfer successful 
+[2020-05-02 16:17:24] [INFO] sending frequency 4000 
+[2020-05-02 16:17:24] [INFO] data transfer successful 
+[2020-05-02 16:17:28] [INFO] sending frequency 32000 
+[2020-05-02 16:17:29] [INFO] data transfer successful 
+[2020-05-02 16:17:35] [INFO] sending frequency 32768 
+[2020-05-02 16:17:35] [INFO] data transfer successful 
+[2020-05-02 16:17:39] [INFO] sending frequency 32767 
+[2020-05-02 16:17:39] [INFO] data transfer successful 

@@ -21,7 +21,6 @@ byte deviceState = 0;
 byte buff[15];
 
 void setup() {
-  
   _state = NC;
   Serial.begin(9600);
 
@@ -33,7 +32,7 @@ void setup() {
   delay(10);
   _state = SB;
 
- DDS.begin(W_CLK_PIN, FQ_UD_PIN, DATA_PIN, RESET_PIN);
+  DDS.begin(W_CLK_PIN, FQ_UD_PIN, DATA_PIN, RESET_PIN);
   DDS.calibrate(125000000);
   DDS.setfreq(1000, 0);
 }
@@ -52,19 +51,27 @@ void rr()
   }
   if (buff[0] == PF_b && buff[1] == HANDSHAKE_b && buff[2] == PL_b) // this is definitely a ping
     Serial.write(HANDSHAKE_b);
-  if(buff[0] == PF_b && buff[6] == PL_b && buff[1] == SF_b) // single freq
+  if (buff[0] == PF_b && buff[6] == PL_b && buff[1] == SF_b) // single freq
   {
-     int f = (int)((unsigned byte)(buff[5]) << 24 |(unsigned byte)(buff[4]) << 16 | (unsigned byte)(buff[3]) << 8 | (unsigned byte)(buff[2]));
-     delay(15);
-     Serial.write(READY_b);
-     _state = SF;
+    long f = ((buff[5]) << 24 |
+                (buff[4]) << 16 |
+                (buff[3]) << 8 |
+                (buff[2]));
+    delay(15);
+    Serial.write(READY_b);
+    _state = SF;
 
-     DDS.setfreq(f, 0);
+    char return_buff[4];
+    return_buff[0] = ((f) & 0xFF);
+    return_buff[1] = ((f >> 8) & 0xFF);
+    return_buff[2] = ((f >> 16) & 0xFF);
+    return_buff[3] = ((f >> 24) & 0xFF);
+
+    for (int i = 0; i < 4; i++) {
+      Serial.write(return_buff[i]);
+    }
+    DDS.setfreq(f, 0);
   }
-  /*if (buff[0] != PF || buff[num - 1] != PL)
-    return;
-  else*/
-  
 }
 
 bool ping() {
