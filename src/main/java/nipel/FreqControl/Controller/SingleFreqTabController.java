@@ -11,7 +11,6 @@ import javafx.util.StringConverter;
 import nipel.FreqControl.Util.Commands;
 
 import java.net.URL;
-import java.sql.Array;
 import java.util.ResourceBundle;
 import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
