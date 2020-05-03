@@ -59,7 +59,7 @@ public class MainController implements Initializable {
         if (o != null)
             device_list.getSelectionModel().select(o);
         else
-            device_list.getSelectionModel().select(0);
+            device_list.getSelectionModel().selectLast();
     }
 
     public void connect_btn_action(ActionEvent e) {

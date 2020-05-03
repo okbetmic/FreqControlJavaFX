@@ -65,10 +65,10 @@ public class ConnectionService extends Service<String> {
         buffer[0] = deviceActions.get("PF");
         buffer[1] = deviceActions.get("SF");
 
-        buffer[2] = (byte) ((deviceSettings.freq) & 0xFF);
-        buffer[3] = (byte) ((deviceSettings.freq >> 8) & 0xFF);
-        buffer[4] = (byte) ((deviceSettings.freq >> 16) & 0xFF);
-        buffer[5] = (byte) ((deviceSettings.freq >> 24) & 0xFF);
+        buffer[2] = (byte) ((deviceSettings.freq >>> 0) & 0xFF);
+        buffer[3] = (byte) ((deviceSettings.freq >>> 8) & 0xFF);
+        buffer[4] = (byte) ((deviceSettings.freq >>> 16) & 0xFF);
+        buffer[5] = (byte) ((deviceSettings.freq >>> 24) & 0xFF);
 
         buffer[6] = deviceActions.get("PL");
 
@@ -81,7 +81,7 @@ public class ConnectionService extends Service<String> {
             }
             Arrays.fill(buffer, (byte) 0);
             serialPort.readBytes(buffer, 4);
-            System.out.println("\nardu");
+            System.out.println("\nardu received");
             for (int i = 0; i < 4; i++) {
                 System.out.print(String.format("%8s", Integer.toBinaryString(buffer[3 - i] & 0xFF)).replace(' ', '0') + "\t");
             }

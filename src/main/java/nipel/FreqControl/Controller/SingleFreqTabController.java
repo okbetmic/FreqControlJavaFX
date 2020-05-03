@@ -64,7 +64,6 @@ public class SingleFreqTabController extends InjectableController implements Ini
         freqField.setTextFormatter(textFormatter);
 
         freqFactorBox.setConverter(new StringConverter<Integer>() {
-
             @Override
             public String toString(Integer integer) {
                 int f = integer;
@@ -89,9 +88,13 @@ public class SingleFreqTabController extends InjectableController implements Ini
 
     @Override
     public Commands.deviceSettings getSettings() {
-        double freq = Double.parseDouble(freqField.getTextFormatter().getValue().toString());
-        int factor = freqFactorBox.getValue();
-        deviceSettings.freq = (int) (freq * factor);
+        if (sf_toggle_button.isSelected()) {
+            double freq = Double.parseDouble(freqField.getTextFormatter().getValue().toString());
+            int factor = freqFactorBox.getValue();
+            deviceSettings.freq = (int) (freq * factor);
+        } else {
+            deviceSettings.freq = 0;
+        }
         return this.deviceSettings;
     }
 }
