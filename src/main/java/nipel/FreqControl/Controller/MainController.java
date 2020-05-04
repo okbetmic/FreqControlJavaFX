@@ -1,6 +1,8 @@
 package nipel.FreqControl.Controller;
 
 import javafx.application.Platform;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.concurrent.Worker;
 import javafx.concurrent.WorkerStateEvent;
@@ -13,9 +15,11 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
+import javafx.util.StringConverter;
 import nipel.FreqControl.Util.Commands;
 import nipel.FreqControl.Util.ConnectionService;
 import static nipel.FreqControl.Util.Commands.log;
+import static nipel.FreqControl.Util.Commands.deviceStates;
 
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -30,6 +34,7 @@ public class MainController implements Initializable {
     @FXML private ProgressBar progress_bar_info;
     @FXML private ChoiceBox device_list;
     @FXML private Button refresh_btn;
+    @FXML private Button sendBtn;
 
     @FXML private SingleFreqTabController singleFreqTabController;
     @FXML private SweepTabController sweepTabController;
@@ -43,9 +48,15 @@ public class MainController implements Initializable {
         xOffset = yOffset = 0;
 
         singleFreqTabController.injectMainController(this);
+        sweepTabController.injectMainController(this);
 
         connection = new ConnectionService();
-        connected_info_label.textProperty().bind(connection.messageProperty());
+
+        sendBtn.disableProperty().bind(connection.getSendDisableProperty());
+        connected_info_label.textProperty().bind(connection.connectionStateProperty);
+        mode_info_label.textProperty().bind(connection.deviceStateProperty);
+        progress_bar_info.progressProperty().bind(connection.progressProperty());
+
         connection.setOnFailed(workerStateEvent -> log.warning("task failed"));
         connection.setOnCancelled(workerStateEvent -> log.warning("task cancelled"));
 
@@ -72,7 +83,7 @@ public class MainController implements Initializable {
             connection.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
                 @Override
                 public void handle(WorkerStateEvent workerStateEvent) {
-                    if (connection.deviceState != connection.deviceState.NC) {
+                    if (connection.deviceState != deviceStates.NC) {
                         connection.setControllerAction(Commands.controllerActions.PING);
                         connection.setOnSucceeded(null);
                         connection.restart();
@@ -104,19 +115,25 @@ public class MainController implements Initializable {
         sc.setX(e.getScreenX() + xOffset);
         sc.setY(e.getScreenY() + yOffset);
     }
-
     public void sendBtnAction(ActionEvent actionEvent) {
-        if (connection.deviceState == Commands.deviceStates.SB || connection.deviceState == Commands.deviceStates.SF) {
+        if (connection.deviceState == deviceStates.SB || connection.deviceState == deviceStates.SF) {
             switch (tabPane.getSelectionModel().getSelectedIndex()) {
                 case 0: // single frequency
                     connection.setControllerAction(Commands.controllerActions.SEND_SF);
                     connection.setSettings(singleFreqTabController.getSettings());
                     break;
                 case 1: // sweep
+                    connection.setControllerAction(Commands.controllerActions.SEND_SW);
+                    connection.setSettings(sweepTabController.getSettings());
                     break;
                 default:
                     break;
             }
         }
+    }
+
+    public void connectionClose(ActionEvent actionEvent) {
+        if (connection.deviceState != deviceStates.NC)
+            connection.down();
     }
 }

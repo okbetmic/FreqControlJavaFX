@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.ChoiceBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+
+<AnchorPane prefHeight="387.0" prefWidth="344.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="nipel.FreqControl.Controller.SweepTabController">
+   <children>
+      <VBox prefHeight="387.0" prefWidth="344.0">
+         <children>
+            <VBox prefWidth="285.0">
+               <children>
+                  <AnchorPane>
+                     <children>
+                        <Label alignment="CENTER" contentDisplay="CENTER" text="Min frequency" textAlignment="CENTER" AnchorPane.bottomAnchor="4.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="4.0" />
+                        <TextField fx:id="minFreqField" AnchorPane.rightAnchor="60.0" />
+                     </children>
+                     <VBox.margin>
+                        <Insets left="5.0" right="5.0" top="5.0" />
+                     </VBox.margin>
+                  </AnchorPane>
+                  <AnchorPane>
+                     <children>
+                        <Label alignment="CENTER" contentDisplay="CENTER" text="Max frequency" textAlignment="CENTER" AnchorPane.bottomAnchor="4.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="4.0" />
+                        <TextField fx:id="maxFreqField" AnchorPane.rightAnchor="60.0" />
+                     </children>
+                     <VBox.margin>
+                        <Insets left="5.0" right="5.0" top="5.0" />
+                     </VBox.margin>
+                  </AnchorPane>
+               </children>
+            </VBox>
+            <ListView fx:id="radioSettingsList" prefHeight="85.0" />
+            <VBox fx:id="sweepSettingsContainer" prefHeight="135.0" prefWidth="285.0">
+               <children>
+                  <AnchorPane>
+                     <children>
+                        <ChoiceBox prefHeight="25.0" prefWidth="50.0" AnchorPane.rightAnchor="0.0" />
+                        <Label alignment="CENTER" contentDisplay="CENTER" text="Total time (s)" textAlignment="CENTER" AnchorPane.bottomAnchor="4.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="4.0" />
+                        <TextField fx:id="totalTimeField" layoutX="122.0" AnchorPane.rightAnchor="60.0" />
+                     </children>
+                     <VBox.margin>
+                        <Insets left="5.0" right="5.0" top="5.0" />
+                     </VBox.margin>
+                  </AnchorPane>
+                  <AnchorPane>
+                     <children>
+                        <Label alignment="CENTER" contentDisplay="CENTER" text="Time step (us)" textAlignment="CENTER" AnchorPane.bottomAnchor="4.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="4.0" />
+                        <TextField fx:id="timeStepField" AnchorPane.rightAnchor="60.0" />
+                     </children>
+                     <VBox.margin>
+                        <Insets left="5.0" right="5.0" top="5.0" />
+                     </VBox.margin>
+                  </AnchorPane>
+                  <AnchorPane>
+                     <children>
+                        <Label alignment="CENTER" contentDisplay="CENTER" text="Frequency step (Hz)" textAlignment="CENTER" AnchorPane.bottomAnchor="4.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="4.0" />
+                        <TextField fx:id="freqStepField" AnchorPane.rightAnchor="60.0" />
+                     </children>
+                     <VBox.margin>
+                        <Insets left="5.0" right="5.0" top="5.0" />
+                     </VBox.margin>
+                  </AnchorPane>
+                  <AnchorPane>
+                     <children>
+                        <Label alignment="CENTER" contentDisplay="CENTER" text="Steps count" textAlignment="CENTER" AnchorPane.bottomAnchor="4.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="4.0" />
+                        <TextField fx:id="stepsCountField" AnchorPane.rightAnchor="60.0" />
+                     </children>
+                     <VBox.margin>
+                        <Insets left="5.0" right="5.0" top="5.0" />
+                     </VBox.margin>
+                  </AnchorPane>
+               </children>
+            </VBox>
+         </children>
+      </VBox>
+   </children>
+</AnchorPane>

@@ -8,9 +8,22 @@ import java.util.logging.*;
 public class Commands {
 
     public static HashMap<String, Byte> deviceActions;
-    public enum deviceStates {NC, SB, SF, SW};
-    public enum controllerActions {BEGIN_COMM, PING, SB, SEND_SF, SEND_SW};
+    public enum deviceStates {
+        NC("Not connected"),
+        SB("Stand by"),
+        SF("Single Frequency"),
+        SW("Sweep");
+        private final String displayName;
+        deviceStates(String displayName) {
+            this.displayName = displayName;
+        }
 
+        @Override
+        public String toString() {
+            return displayName;
+        }
+    };
+    public enum controllerActions {BEGIN_COMM, PING, SB, SEND_SF, SEND_SW};
 
     public static Logger log = Logger.getLogger(Commands.class.getName());
 
@@ -18,8 +31,9 @@ public class Commands {
         // single frequency
         public int freq;
         // sweep
-        public int beginFreq, endFreq;
-        public double step;
+        public int minF, maxF; // Hz
+        public int timeStep; // MILLIS
+        public int freqStep; // Hz
     }
 
     public static void setVariables()
@@ -57,6 +71,9 @@ public class Commands {
         deviceActions.put("READY_B",        (byte) 002);    //
         deviceActions.put("HANDSHAKE_B",    (byte) 012);    //
         deviceActions.put("ERROR_B",        (byte) 022);    //
+
+        deviceActions.put("SWEEP_LOOP_B",   (byte) 055);
+        deviceActions.put("SWEEP_END_B",    (byte) 065);
 
         deviceActions.put("PF",             (byte) 033);
         deviceActions.put("PL",             (byte) 066);

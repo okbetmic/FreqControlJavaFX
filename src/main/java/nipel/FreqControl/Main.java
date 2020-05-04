@@ -20,8 +20,6 @@ public class Main extends Application {
     @Override
     public void start(Stage stage) throws Exception{
 
-        System.out.println((byte) 0xFB);
-
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Main.fxml"));
         Parent root = loader.load();
 
