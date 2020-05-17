@@ -9,10 +9,11 @@ public class Commands {
 
     public static HashMap<String, Byte> deviceActions;
     public enum deviceStates {
-        NC("Not connected"),
-        SB("Stand by"),
-        SF("Single Frequency"),
-        SW("Sweep");
+        NotConnected("Not connected"),
+        Connecting("Connecting"),
+        StandBy("Stand by"),
+        SingleFreq("Single Frequency"),
+        Sweep("Sweep");
         private final String displayName;
         deviceStates(String displayName) {
             this.displayName = displayName;
@@ -23,7 +24,7 @@ public class Commands {
             return displayName;
         }
     };
-    public enum controllerActions {BEGIN_COMM, PING, SB, SEND_SF, SEND_SW};
+    public enum controllerActions {BEGIN_COMM, HEARTBEAT, SB, SEND_SF, SEND_SW};
 
     public static Logger log = Logger.getLogger(Commands.class.getName());
 
@@ -47,12 +48,13 @@ public class Commands {
             e.printStackTrace();
         }
         SimpleFormatter simpleFormatter = new SimpleFormatter() {
-            private static final String format = "[%1$tF %1$tT] [%2$-1s] %3$s %n";
+            private static final String format = "[%1$tF %1$tT][%2$-1s][%3$s] %4$s %n";
             @Override
             public synchronized String format(LogRecord lr) {
                 return String.format(format,
                         new Date(lr.getMillis()),
                         lr.getLevel().getLocalizedName(),
+                        lr.getSourceClassName(),
                         lr.getMessage()
                 );
             }

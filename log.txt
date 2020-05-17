@@ -1,49 +1,14 @@
-[2020-05-04 10:17:41] [INFO] logger started 
-[2020-05-04 10:17:43] [INFO] created connection task (deviceState=Not connected and controllerAction=BEGIN_COMM) 
-[2020-05-04 10:17:45] [INFO] connection with COM11 successful 
-[2020-05-04 10:17:45] [WARNING] task cancelled 
-[2020-05-04 10:17:45] [INFO] task succeeded (deviceState=Stand by and controllerAction=PING) 
-[2020-05-04 10:17:45] [INFO] created ping task (deviceState=Stand by and controllerAction=PING) 
-[2020-05-04 10:18:00] [INFO] sending sweep 
-	minF=1000 Hz
-	maxF=1000000 Hz
-	timeStep=50 ms
-	freqStep=1249Hz 
-[2020-05-04 10:18:00] [INFO] Timeout 39950.0 ms 
-[2020-05-04 10:19:00] [INFO] sending sweep 
-	minF=1000 Hz
-	maxF=20000000 Hz
-	timeStep=50 ms
-	freqStep=24999Hz 
-[2020-05-04 10:19:00] [INFO] Timeout 39950.0 ms 
-[2020-05-04 10:19:49] [INFO] sending sweep 
-	minF=1000 Hz
-	maxF=100000 Hz
-	timeStep=50 ms
-	freqStep=124Hz 
-[2020-05-04 10:19:49] [INFO] Timeout 39900.0 ms 
-[2020-05-04 10:20:45] [INFO] sending sweep 
-	minF=1000 Hz
-	maxF=100000 Hz
-	timeStep=50 ms
-	freqStep=124Hz 
-[2020-05-04 10:20:45] [INFO] Timeout 39900.0 ms 
-[2020-05-04 10:22:33] [INFO] sending sweep 
-	minF=1000 Hz
-	maxF=100000 Hz
-	timeStep=50 ms
-	freqStep=124Hz 
-[2020-05-04 10:22:34] [INFO] Timeout 39900.0 ms 
-[2020-05-04 10:23:31] [WARNING] connection lost 
-[2020-05-04 10:23:32] [INFO] task succeeded (deviceState=Not connected and controllerAction=PING) 
-[2020-05-04 10:24:42] [INFO] created connection task (deviceState=Not connected and controllerAction=BEGIN_COMM) 
-[2020-05-04 10:24:44] [INFO] connection with COM11 successful 
-[2020-05-04 10:24:44] [WARNING] task cancelled 
-[2020-05-04 10:24:44] [INFO] task succeeded (deviceState=Stand by and controllerAction=PING) 
-[2020-05-04 10:24:44] [INFO] created ping task (deviceState=Stand by and controllerAction=PING) 
-[2020-05-04 10:24:50] [INFO] sending frequency (freq=0) 
-[2020-05-04 10:24:50] [INFO] data transfer successful 
-[2020-05-04 10:24:55] [INFO] sending frequency (freq=1000) 
-[2020-05-04 10:24:55] [INFO] data transfer successful 
-[2020-05-04 10:26:50] [WARNING] connection lost 
-[2020-05-04 10:26:51] [INFO] task succeeded (deviceState=Not connected and controllerAction=PING) 
+[2020-05-18 01:10:41][INFO][nipel.FreqControl.Util.Commands] logger started 
+[2020-05-18 01:10:43][INFO][nipel.FreqControl.Util.ConnectionService$BeginCommTask] created connection task 
+[2020-05-18 01:10:45][INFO][nipel.FreqControl.Util.ConnectionService$BeginCommTask] connection with COM13 successful 
+[2020-05-18 01:10:54][INFO][nipel.FreqControl.Util.ConnectionService$SendSweepTask] sending sweep 
+	minF=100 Hz
+	maxF=1000 Hz
+	timeStep=1000 ms
+	freqStep=45Hz 
+[2020-05-18 01:10:54][INFO][nipel.FreqControl.Util.ConnectionService] Timeout 20000.0 ms 
+[2020-05-18 01:11:14][INFO][nipel.FreqControl.Util.ConnectionService$SendSweepTask] sending sweep 
+	minF=100 Hz
+	maxF=1000 Hz
+	timeStep=1000 ms
+	freqStep=45Hz 

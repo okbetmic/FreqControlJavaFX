@@ -1,13 +1,11 @@
 package nipel.FreqControl.Controller;
 
 import javafx.application.Platform;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.binding.Bindings;
+import javafx.beans.binding.BooleanBinding;
 import javafx.collections.FXCollections;
 import javafx.concurrent.Worker;
-import javafx.concurrent.WorkerStateEvent;
 import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
@@ -15,11 +13,10 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
-import javafx.util.StringConverter;
-import nipel.FreqControl.Util.Commands;
 import nipel.FreqControl.Util.ConnectionService;
 import static nipel.FreqControl.Util.Commands.log;
 import static nipel.FreqControl.Util.Commands.deviceStates;
+import static nipel.FreqControl.Util.Commands.controllerActions;
 
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -29,67 +26,93 @@ public class MainController implements Initializable {
     private double xOffset, yOffset;
     @FXML private AnchorPane main_pane;
     @FXML private GridPane info_table;
-    @FXML private Label connected_info_label;
-    @FXML private Label mode_info_label;
-    @FXML private ProgressBar progress_bar_info;
-    @FXML private ChoiceBox device_list;
-    @FXML private Button refresh_btn;
-    @FXML private Button sendBtn;
+    @FXML private ChoiceBox<String> device_list;
 
     @FXML private SingleFreqTabController singleFreqTabController;
     @FXML private SweepTabController sweepTabController;
+
+    @FXML private Label deviceModeLabel;
+    @FXML private Label errorLabel;
+
+    //@FXML private Label mode_info_label;
+    @FXML private ProgressBar sweepProgressBar;
+    @FXML private Button sendBtn;
+    @FXML private Button connectBtn;
+    @FXML private Button disconnectBtn;
+
 
     @FXML TabPane tabPane;
 
     private ConnectionService connection;
 
+    public MainController() {
+
+    }
+
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         xOffset = yOffset = 0;
-
         singleFreqTabController.injectMainController(this);
         sweepTabController.injectMainController(this);
 
         connection = new ConnectionService();
 
-        sendBtn.disableProperty().bind(connection.getSendDisableProperty());
-        connected_info_label.textProperty().bind(connection.connectionStateProperty);
-        mode_info_label.textProperty().bind(connection.deviceStateProperty);
-        progress_bar_info.progressProperty().bind(connection.progressProperty());
+        deviceModeLabel.textProperty().bind(connection.getDeviceStateProperty().asString());
+        sendBtn.disableProperty().bind(Bindings.and(connection.getDeviceStateProperty().isNotEqualTo(deviceStates.StandBy), connection.getDeviceStateProperty().isNotEqualTo(deviceStates.SingleFreq)));
+        sweepProgressBar.disableProperty().bind(connection.getDeviceStateProperty().isNotEqualTo(deviceStates.Sweep));
+        sweepProgressBar.progressProperty().bind(connection.progressProperty());
+        connectBtn.disableProperty().bind(connection.getDeviceStateProperty().isNotEqualTo(deviceStates.NotConnected));
+        disconnectBtn.disableProperty().bind(connectBtn.disabledProperty().not());
 
-        connection.setOnFailed(workerStateEvent -> log.warning("task failed"));
-        connection.setOnCancelled(workerStateEvent -> log.warning("task cancelled"));
+        refreshBtnAction(new ActionEvent()); // update ports on startup
 
-        refresh_btn_action(new ActionEvent());
+        connection.setControllerAction(controllerActions.BEGIN_COMM);
+        connection.setOnSucceeded(ee -> { // main loop
+            connection.restart();
+        });
+        connection.setOnFailed(ee -> {
+            log.warning("Connection service error: " + connection.exceptionProperty().get().getLocalizedMessage());
+            errorLabel.setText(connection.getException().getLocalizedMessage());
+            connection.reset();
+        });
+        connection.setOnScheduled(ee -> errorLabel.setText(""));
     }
 
-    //buttons
-    public void refresh_btn_action(ActionEvent e) {
-        Object o = device_list.getSelectionModel().getSelectedItem();
+    // device control buttons
+    public void refreshBtnAction(ActionEvent e) {
+        String o = device_list.getSelectionModel().getSelectedItem();
         device_list.getItems().setAll(FXCollections.observableArrayList(connection.getPorts()));
-        if (o != null)
-            device_list.getSelectionModel().select(o);
+        if (o != null && device_list.getItems().contains(o))
+            device_list.getSelectionModel().select(o); // save selected element
         else
             device_list.getSelectionModel().selectLast();
     }
 
-    public void connect_btn_action(ActionEvent e) {
-        String portDescriptor = (String)device_list.getValue();
+    public void connectBtnAction(ActionEvent e) {
+        String portDescriptor = device_list.getValue();
         connection.setPortDescriptor(portDescriptor);
-        if (connection.getState() == Worker.State.READY || connection.getState() == Worker.State.SUCCEEDED) {
-            connection.setControllerAction(Commands.controllerActions.BEGIN_COMM);
-            connection.reset();
+        connection.setControllerAction(controllerActions.BEGIN_COMM);
+        if (connection.getState() == Worker.State.READY)
             connection.start();
-            connection.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
-                @Override
-                public void handle(WorkerStateEvent workerStateEvent) {
-                    if (connection.deviceState != deviceStates.NC) {
-                        connection.setControllerAction(Commands.controllerActions.PING);
-                        connection.setOnSucceeded(null);
-                        connection.restart();
-                    }
-                }
-            });
+    }
+
+    public void disconnectBtnAction(ActionEvent e) {
+        if(connection.cancel())
+            connection.reset();
+    }
+
+    public void sendBtnAction(ActionEvent actionEvent) {
+        switch (tabPane.getSelectionModel().getSelectedIndex()) {
+            case 0: // single frequency
+                connection.setControllerAction(controllerActions.SEND_SF);
+                connection.setSettings(singleFreqTabController.getSettings());
+                break;
+            case 1: // sweep
+                connection.setControllerAction(controllerActions.SEND_SW);
+                connection.setSettings(sweepTabController.getSettings());
+                break;
+            default:
+                break;
         }
     }
 
@@ -99,7 +122,7 @@ public class MainController implements Initializable {
     }
 
     public void close_btn_action(ActionEvent e) {
-        connection.down();
+        disconnectBtnAction(e);
         Platform.exit();
         System.exit(0);
     }
@@ -114,26 +137,5 @@ public class MainController implements Initializable {
         Stage sc = (Stage)((AnchorPane)e.getSource()).getScene().getWindow();
         sc.setX(e.getScreenX() + xOffset);
         sc.setY(e.getScreenY() + yOffset);
-    }
-    public void sendBtnAction(ActionEvent actionEvent) {
-        if (connection.deviceState == deviceStates.SB || connection.deviceState == deviceStates.SF) {
-            switch (tabPane.getSelectionModel().getSelectedIndex()) {
-                case 0: // single frequency
-                    connection.setControllerAction(Commands.controllerActions.SEND_SF);
-                    connection.setSettings(singleFreqTabController.getSettings());
-                    break;
-                case 1: // sweep
-                    connection.setControllerAction(Commands.controllerActions.SEND_SW);
-                    connection.setSettings(sweepTabController.getSettings());
-                    break;
-                default:
-                    break;
-            }
-        }
-    }
-
-    public void connectionClose(ActionEvent actionEvent) {
-        if (connection.deviceState != deviceStates.NC)
-            connection.down();
     }
 }

@@ -7,12 +7,11 @@ import javafx.concurrent.Service;
 import javafx.concurrent.Task;
 
 import java.util.Arrays;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
 
-import static nipel.FreqControl.Util.Commands.controllerActions.*;
 import static nipel.FreqControl.Util.Commands.deviceStates;
 import static nipel.FreqControl.Util.Commands.deviceActions;
+import static nipel.FreqControl.Util.Commands.controllerActions;
 import static nipel.FreqControl.Util.Commands.log;
 
 public class ConnectionService extends Service<String> {
@@ -20,44 +19,33 @@ public class ConnectionService extends Service<String> {
     private String portDescriptor;
     private SerialPort serialPort;
 
-    //  enough to describe all operating modes
-
     public Commands.controllerActions controllerAction;
-    public Commands.deviceStates deviceState;
     private Commands.deviceSettings deviceSettings;
 
-    private BooleanProperty sendDisableProperty;
-    public StringProperty deviceStateProperty = new SimpleStringProperty();
-    public StringProperty connectionStateProperty = new SimpleStringProperty();
+    private ObjectProperty<deviceStates> deviceStateProperty;
 
 
     byte[] buffer;
+
+
 
     public ConnectionService() {
         Commands.setVariables(); // init states and commands
         buffer  = new byte[19]; // serial port read-write buffer
         portDescriptor = "";
 
-        sendDisableProperty = new SimpleBooleanProperty(true);
-        deviceState = deviceStates.NC;
-        serviceEnd();
+        deviceStateProperty =new SimpleObjectProperty<>(deviceStates.NotConnected);
     }
 
-    public BooleanProperty getSendDisableProperty() {
-        return sendDisableProperty;
-    }
+    public ObjectProperty getDeviceStateProperty() {return deviceStateProperty; }
 
+    public String[] getPorts() { return Stream.of(SerialPort.getCommPorts()).map(a -> a.getSystemPortName()).toArray(String[]::new); }
 
-    public String[] getPorts() {
-        return Stream.of(SerialPort.getCommPorts()).map(a -> a.getSystemPortName()).toArray(String[]::new);
-    }
-
-    // replace with set settings
     public void setPortDescriptor(String portDescriptor) {
         this.portDescriptor = portDescriptor;
     }
 
-    public void setControllerAction(Commands.controllerActions controllerAction) {
+    public void setControllerAction(controllerActions controllerAction) {
         this.controllerAction = controllerAction;
     }
 
@@ -65,7 +53,7 @@ public class ConnectionService extends Service<String> {
         this.deviceSettings = deviceSettings;
     }
 
-    private boolean ping() { // call with certainty that port is opened
+    private boolean heartbeat() { // call with certainty that port is opened
         buffer[0] = deviceActions.get("PF");
         buffer[1] = deviceActions.get("HANDSHAKE_B");
         buffer[2] = deviceActions.get("PL");
@@ -87,21 +75,8 @@ public class ConnectionService extends Service<String> {
 
         serialPort.writeBytes(buffer, 7);
         serialPort.readBytes(buffer, 1);
-        if (buffer[0] == deviceActions.get("READY_B")) {
-            System.out.println("java");
-            for (int i = 0; i < 4; i++) {
-                System.out.print(String.format("%8s", Integer.toBinaryString(buffer[5 - i] & 0xFF)).replace(' ', '0')  + "\t");
-            }
-            Arrays.fill(buffer, (byte) 0);
-            serialPort.readBytes(buffer, 4);
-            System.out.println("\nardu received");
-            for (int i = 0; i < 4; i++) {
-                System.out.print(String.format("%8s", Integer.toBinaryString(buffer[3 - i] & 0xFF)).replace(' ', '0') + "\t");
-            }
-            System.out.println("\n");
-            return true;
-        }
-        return false;
+
+        return buffer[0] == deviceActions.get("READY_B");
     }
 
     private void sendSweep() throws InterruptedException {
@@ -134,7 +109,7 @@ public class ConnectionService extends Service<String> {
         serialPort.readBytes(buffer, 1);
         if (buffer[0] == deviceActions.get("READY_B")) {
             double totalTime = (deviceSettings.maxF - deviceSettings.minF) / deviceSettings.freqStep * deviceSettings.timeStep;
-            log.info("Timeout " + String.valueOf(totalTime) + " ms");
+            log.info("Timeout " + totalTime + " ms");
             serialPort.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING | SerialPort.TIMEOUT_WRITE_BLOCKING, (int) (totalTime * 1.2), 100);
             int i = (deviceSettings.maxF - deviceSettings.minF) / deviceSettings.freqStep;
             final long sweepStartTime = System.currentTimeMillis();
@@ -155,7 +130,7 @@ public class ConnectionService extends Service<String> {
                     System.out.println("Received data of size: " + newData.length + "\n");
                     if (newData[newData.length - 1] == deviceActions.get("SWEEP_END_B")) {
                         System.out.println("sweep end " + (System.currentTimeMillis() - sweepStartTime));
-                        controllerAction = PING;
+                        controllerAction = controllerActions.HEARTBEAT;
                         serialPort.removeDataListener();
                     }
                 }
@@ -165,166 +140,117 @@ public class ConnectionService extends Service<String> {
 
     @Override
     protected Task<String> createTask() {
-        if (deviceState == deviceStates.NC && controllerAction == controllerAction.BEGIN_COMM) {// connect to arduino
-            return new Task<String>() {
-                @Override
-                protected String call() {
-                    log.info("created connection task (deviceState=" + deviceState + " and controllerAction=" + controllerAction + ")");
-                    try {
-                        serialPort.closePort();
-                    } catch (Exception ex) {
-                    }
-                    if (portDescriptor.length() < 4) {
-                        log.warning("incorrect port descriptor. connection interrupted");
-                        return null;
-                    }
-                    serialPort = SerialPort.getCommPort(portDescriptor);
-                    if (!serialPort.openPort()) {
-                        log.warning("port opening error");
-                    }
-
-                    serialPort.setBaudRate(9600);
-                    serialPort.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING | SerialPort.TIMEOUT_WRITE_BLOCKING, 3000, 100);
-
-                    try {
-                        Arrays.fill(buffer, (byte) 0);
-
-                        serialPort.readBytes(buffer, 1);
-                        if (buffer[0] != deviceActions.get("HANDSHAKE_B"))
-                            throw new Exception("bad response from arduino");
-
-                        buffer[0] = deviceActions.get("HANDSHAKE_B");
-                        serialPort.writeBytes(buffer, 1);
-
-                        serialPort.readBytes(buffer, 1);
-                        if (buffer[0] == deviceActions.get("HANDSHAKE_B")) {    // connection successful
-                            deviceState = deviceStates.SB;
-                        }
-                    } catch (TimeoutException e) {
-                        log.warning(e.getLocalizedMessage());
-                    } catch (Exception e) {
-                        log.warning(e.getLocalizedMessage());
-                    }
-
-                    if (deviceState == deviceStates.SB) {
-                        log.info("connection with " + portDescriptor + " successful");
-                        return "ok";
-                    }
-                    else {
-                        return null;
-                    }
-                }
-            };
+        switch (controllerAction) {
+            case BEGIN_COMM -> { return new BeginCommTask(); }
+            case HEARTBEAT -> { return new HeartbeatTask(); }
+            case SEND_SF -> { return new SendFrequencyTask(); }
+            case SEND_SW -> { return new SendSweepTask(); }
         }
-
-        if (controllerAction == PING && deviceState == deviceState.SB) {
-            return new Task() {
-                @Override
-                protected String call() throws Exception {
-                    log.info("created ping task (deviceState=" + deviceState + " and controllerAction=" + controllerAction + ")");
-                    serialPort.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING | SerialPort.TIMEOUT_WRITE_BLOCKING, 100, 100);
-                    while (deviceState != deviceStates.NC) {
-                        if (ping()) {
-                            switch (controllerAction) {
-                                case PING:
-                                    break;
-                                case SEND_SF:
-                                    log.info("sending frequency (freq=" + deviceSettings.freq + ")");
-                                    if (sendFrequency()) {
-                                        log.info("data transfer successful");
-                                        if (deviceSettings.freq <=0)
-                                            deviceState = deviceState.SB;
-                                        else
-                                            deviceState = deviceState.SF;
-                                        Platform.runLater(() -> serviceEnd());
-                                    } else {
-                                        log.warning("data send error");
-                                    }
-                                    controllerAction = controllerAction.PING;
-                                    break;
-                                case SEND_SW:
-                                    log.info(String.format("sending sweep \n\tminF=%d Hz\n\tmaxF=%d Hz\n\ttimeStep=%d ms\n\tfreqStep=%dHz", deviceSettings.minF, deviceSettings.maxF, deviceSettings.timeStep, deviceSettings.freqStep));
-                                    sendSweep();
-                                    final long sweepStartTime = System.currentTimeMillis();
-                                    double totalTime = (deviceSettings.maxF - deviceSettings.minF) / deviceSettings.freqStep * deviceSettings.timeStep;
-                                    while ((controllerAction == SEND_SW) && ((System.currentTimeMillis() - sweepStartTime) <= totalTime * 2))
-                                    {
-                                        updateProgress((System.currentTimeMillis() - sweepStartTime), totalTime);
-                                    }
-                                    break;
-                            }
-                        } else {
-                            log.warning("connection lost");
-                            deviceState = deviceStates.NC; // exiting task
-                        }
-                        Thread.sleep(1000);
-                    }
-                    return "end";
-                }
-            };
-        }
-
-
-        return new Task<String>() {
-            @Override
-            protected String call() throws Exception {
-                while (true) {
-                    System.out.println("you shouldn't have gotten here");
-                    Thread.sleep(100);
-                }
-            }
-        };
+        return null;
     }
 
+    // task classes with device actions
+
+    private class BeginCommTask extends Task<String> {
+
+        @Override
+        protected String call() throws Exception {
+            log.info("created connection task");
+            Platform.runLater(() -> deviceStateProperty.setValue(deviceStates.Connecting));
+            if (portDescriptor.length() < 4) {
+                throw new Exception("incorrect port descriptor");
+            }
+            serialPort = SerialPort.getCommPort(portDescriptor);
+            if (!serialPort.openPort()) {
+                throw new Exception(String.format("can't open port <%s>", portDescriptor));
+            }
+            serialPort.setBaudRate(9600);
+            serialPort.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING | SerialPort.TIMEOUT_WRITE_BLOCKING, 3000, 100);
+            Arrays.fill(buffer, (byte) 0);
+            serialPort.readBytes(buffer, 1);
+            if (buffer[0] != deviceActions.get("HANDSHAKE_B"))
+                throw new Exception("bad response");
+            buffer[0] = deviceActions.get("HANDSHAKE_B");
+            serialPort.writeBytes(buffer, 1);
+            serialPort.readBytes(buffer, 1);
+            if (buffer[0] == deviceActions.get("HANDSHAKE_B")) {
+                Platform.runLater(() -> deviceStateProperty.setValue(deviceStates.StandBy));
+                controllerAction = controllerActions.HEARTBEAT;
+                log.info("connection with " + portDescriptor + " successful");
+                return "successful connection";
+            }
+            return "null";
+        }
+    }
+
+    private class HeartbeatTask extends Task<String> {
+        @Override
+        protected String call() throws Exception {
+            serialPort.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING | SerialPort.TIMEOUT_WRITE_BLOCKING, 100, 100);
+            int heartbeatDelay = 1000;
+            Thread.sleep(heartbeatDelay);
+            if (heartbeat()) {
+                return "heartbeat ok";
+            }
+            else
+                throw new Exception("lost heartbeat");
+        }
+    }
+
+    private class SendFrequencyTask extends Task<String> {
+        @Override
+        protected String call() throws Exception {
+            serialPort.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING | SerialPort.TIMEOUT_WRITE_BLOCKING, 100, 100);
+            log.info("sending frequency (freq=" + deviceSettings.freq + ")");
+            if (sendFrequency()) {
+                log.info("data transfer successful");
+                if (deviceSettings.freq <=0 )
+                    Platform.runLater(() -> deviceStateProperty.setValue(deviceStates.StandBy));
+                else
+                    Platform.runLater(() -> deviceStateProperty.setValue(deviceStates.SingleFreq));
+            } else {
+                throw new Exception("sending error");
+            }
+            controllerAction = controllerActions.HEARTBEAT;
+            return null;
+        }
+    }
+
+    private class SendSweepTask extends Task<String> {
+        @Override
+        protected String call() throws Exception {
+            serialPort.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING | SerialPort.TIMEOUT_WRITE_BLOCKING, 100, 100);
+            Platform.runLater(() -> deviceStateProperty.setValue(deviceStates.Sweep));
+            log.info(String.format("sending sweep \n\tminF=%d Hz\n\tmaxF=%d Hz\n\ttimeStep=%d ms\n\tfreqStep=%dHz", deviceSettings.minF, deviceSettings.maxF, deviceSettings.timeStep, deviceSettings.freqStep));
+            sendSweep();
+            final long sweepStartTime = System.currentTimeMillis();
+            double totalTime = 1.0 * (deviceSettings.maxF - deviceSettings.minF) / deviceSettings.freqStep * deviceSettings.timeStep;
+            while ((controllerAction == controllerActions.SEND_SW) && ((System.currentTimeMillis() - sweepStartTime) <= totalTime))
+                updateProgress((System.currentTimeMillis() - sweepStartTime), totalTime);
+            Platform.runLater(() -> deviceStateProperty.setValue(deviceStates.StandBy));
+            return null;
+        }
+    }
+
+    private void closeConnection() {
+        deviceStateProperty.setValue(deviceStates.NotConnected);
+        if (serialPort != null)
+            serialPort.closePort();
+    }
+    @Override
+    public boolean cancel() {
+        closeConnection();
+        return super.cancel();
+    }
     @Override
     public void start() {
-        if (deviceState == deviceStates.NC)
-            connectionStateProperty.setValue("Connecting");
         super.start();
     }
-
     @Override
-    public void succeeded() {
-        log.info("task succeeded (deviceState=" + deviceState + " and controllerAction=" + controllerAction + ")");
-        serviceEnd();
-        super.succeeded();
+    protected void failed() {
+        closeConnection();
+        super.failed();
     }
 
-    @Override
-    public void restart() {
-        super.restart();
-    }
 
-    @Override
-    public void reset() {
-        super.reset();
-    }
-
-    public void down() {
-        try {
-            if (serialPort != null) {
-                serialPort.closePort();
-            }
-            deviceState = (deviceStates.NC);
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-    }
-
-    private void serviceEnd() {
-        switch (deviceState)
-        {
-            case NC -> {
-                connectionStateProperty.setValue(deviceState.toString());
-                deviceStateProperty.setValue("");
-                sendDisableProperty.setValue(true);
-                break;
-            }
-            default -> {
-                connectionStateProperty.setValue("Connected");
-                deviceStateProperty.setValue(deviceState.toString());
-                sendDisableProperty.setValue(false);
-            }
-        }
-    }
 }

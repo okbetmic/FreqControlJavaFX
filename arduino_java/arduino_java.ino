@@ -57,7 +57,7 @@ void handle()
   for (int i = 0; i < num; i++) {
     buff[i] = Serial.read();
   }
-  if (buff[0] == PF_b && buff[1] == HANDSHAKE_b && buff[2] == PL_b) // this is definitely a ping
+  if (buff[0] == PF_b && buff[1] == HANDSHAKE_b && buff[2] == PL_b) // heartbeat
     Serial.write(HANDSHAKE_b);
   if (buff[0] == PF_b && buff[6] == PL_b && buff[1] == SF_b) // setting single freq
   {
@@ -115,6 +115,7 @@ void handle()
       delay(time_step);
     }
     Serial.write(SWEEP_END_b);
+    DDS.setfreq(0, 0);
   }
 }
 
