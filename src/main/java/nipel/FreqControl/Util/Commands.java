@@ -1,6 +1,7 @@
 package nipel.FreqControl.Util;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.logging.*;
@@ -27,15 +28,6 @@ public class Commands {
     public enum controllerActions {BEGIN_COMM, HEARTBEAT, SB, SEND_SF, SEND_SW};
 
     public static Logger log = Logger.getLogger(Commands.class.getName());
-
-    public static class deviceSettings {
-        // single frequency
-        public int freq;
-        // sweep
-        public int minF, maxF; // Hz
-        public int timeStep; // MILLIS
-        public int freqStep; // Hz
-    }
 
     public static void setVariables()
     {

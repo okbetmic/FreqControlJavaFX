@@ -10,7 +10,6 @@ import java.util.Arrays;
 import java.util.stream.Stream;
 
 import static nipel.FreqControl.Util.Commands.deviceStates;
-import static nipel.FreqControl.Util.Commands.deviceActions;
 import static nipel.FreqControl.Util.Commands.controllerActions;
 import static nipel.FreqControl.Util.Commands.log;
 
@@ -19,21 +18,17 @@ public class ConnectionService extends Service<String> {
     private String portDescriptor;
     private SerialPort serialPort;
 
-    public Commands.controllerActions controllerAction;
-    private Commands.deviceSettings deviceSettings;
-
     private ObjectProperty<deviceStates> deviceStateProperty;
 
+    private Settings settings;
 
     byte[] buffer;
 
-
-
-    public ConnectionService() {
+    public ConnectionService(Settings settings) {
         Commands.setVariables(); // init states and commands
         buffer  = new byte[19]; // serial port read-write buffer
         portDescriptor = "";
-
+        this.settings = settings;
         deviceStateProperty =new SimpleObjectProperty<>(deviceStates.NotConnected);
     }
 
@@ -45,73 +40,66 @@ public class ConnectionService extends Service<String> {
         this.portDescriptor = portDescriptor;
     }
 
-    public void setControllerAction(controllerActions controllerAction) {
-        this.controllerAction = controllerAction;
-    }
-
-    public void setSettings(Commands.deviceSettings deviceSettings) {
-        this.deviceSettings = deviceSettings;
-    }
-
     private boolean heartbeat() { // call with certainty that port is opened
-        buffer[0] = deviceActions.get("PF");
-        buffer[1] = deviceActions.get("HANDSHAKE_B");
-        buffer[2] = deviceActions.get("PL");
+        buffer[0] = Commands.deviceActions.get("PF");
+        buffer[1] = Commands.deviceActions.get("HANDSHAKE_B");
+        buffer[2] = Commands.deviceActions.get("PL");
         serialPort.writeBytes(buffer, 3);
         serialPort.readBytes(buffer, 1);
-        return (buffer[0] == deviceActions.get("HANDSHAKE_B"));
+        return (buffer[0] == Commands.deviceActions.get("HANDSHAKE_B"));
     }
 
     private boolean sendFrequency() {
-        buffer[0] = deviceActions.get("PF");
-        buffer[1] = deviceActions.get("SF");
+        buffer[0] = Commands.deviceActions.get("PF");
+        buffer[1] = Commands.deviceActions.get("SF");
 
-        buffer[2] = (byte) ((deviceSettings.freq >>> 0) & 0xFF);
-        buffer[3] = (byte) ((deviceSettings.freq >>> 8) & 0xFF);
-        buffer[4] = (byte) ((deviceSettings.freq >>> 16) & 0xFF);
-        buffer[5] = (byte) ((deviceSettings.freq >>> 24) & 0xFF);
+        buffer[2] = (byte) (((int) settings.freq) & 0xFF);
+        buffer[3] = (byte) (((int)settings.freq >>> 8) & 0xFF);
+        buffer[4] = (byte) (((int)settings.freq >>> 16) & 0xFF);
+        buffer[5] = (byte) (((int)settings.freq >>> 24) & 0xFF);
 
-        buffer[6] = deviceActions.get("PL");
+        buffer[6] = Commands.deviceActions.get("PL");
 
         serialPort.writeBytes(buffer, 7);
         serialPort.readBytes(buffer, 1);
 
-        return buffer[0] == deviceActions.get("READY_B");
+        return buffer[0] == Commands.deviceActions.get("READY_B");
     }
 
-    private void sendSweep() throws InterruptedException {
-        buffer[0] = deviceActions.get("PF");
-        buffer[1] = deviceActions.get("SW");
+    private void sendSweep() {
+        buffer[0] = Commands.deviceActions.get("PF");
+        buffer[1] = Commands.deviceActions.get("SW");
 
-        buffer[2] = (byte) ((deviceSettings.minF >>> 0) & 0xFF);
-        buffer[3] = (byte) ((deviceSettings.minF >>> 8) & 0xFF);
-        buffer[4] = (byte) ((deviceSettings.minF >>> 16) & 0xFF);
-        buffer[5] = (byte) ((deviceSettings.minF >>> 24) & 0xFF);
+        buffer[2] = (byte) (((int) settings.minF) & 0xFF);
+        buffer[3] = (byte) (((int)settings.minF >>> 8) & 0xFF);
+        buffer[4] = (byte) (((int)settings.minF >>> 16) & 0xFF);
+        buffer[5] = (byte) (((int)settings.minF >>> 24) & 0xFF);
 
-        buffer[6] = (byte) ((deviceSettings.maxF >>> 0) & 0xFF);
-        buffer[7] = (byte) ((deviceSettings.maxF >>> 8) & 0xFF);
-        buffer[8] = (byte) ((deviceSettings.maxF >>> 16) & 0xFF);
-        buffer[9] = (byte) ((deviceSettings.maxF >>> 24) & 0xFF);
+        buffer[6] = (byte) (((int) settings.maxF) & 0xFF);
+        buffer[7] = (byte) (((int)settings.maxF >>> 8) & 0xFF);
+        buffer[8] = (byte) (((int)settings.maxF >>> 16) & 0xFF);
+        buffer[9] = (byte) (((int)settings.maxF >>> 24) & 0xFF);
 
-        buffer[10] = (byte) ((deviceSettings.timeStep >>> 0) & 0xFF);
-        buffer[11] = (byte) ((deviceSettings.timeStep >>> 8) & 0xFF);
-        buffer[12] = (byte) ((deviceSettings.timeStep >>> 16) & 0xFF);
-        buffer[13] = (byte) ((deviceSettings.timeStep >>> 24) & 0xFF);
+        double ts = settings.timeStep * 1000;
+        buffer[10] = (byte) (((int)ts) & 0xFF);
+        buffer[11] = (byte) (((int)ts >>> 8) & 0xFF);
+        buffer[12] = (byte) (((int)ts >>> 16) & 0xFF);
+        buffer[13] = (byte) (((int)ts >>> 24) & 0xFF);
 
-        buffer[14] = (byte) ((deviceSettings.freqStep >>> 0) & 0xFF);
-        buffer[15] = (byte) ((deviceSettings.freqStep >>> 8) & 0xFF);
-        buffer[16] = (byte) ((deviceSettings.freqStep >>> 16) & 0xFF);
-        buffer[17] = (byte) ((deviceSettings.freqStep >>> 24) & 0xFF);
+        buffer[14] = (byte) (((int) settings.freqStep) & 0xFF);
+        buffer[15] = (byte) (((int)settings.freqStep >>> 8) & 0xFF);
+        buffer[16] = (byte) (((int)settings.freqStep >>> 16) & 0xFF);
+        buffer[17] = (byte) (((int)settings.freqStep >>> 24) & 0xFF);
 
-        buffer[18] = deviceActions.get("PL");
+        buffer[18] = Commands.deviceActions.get("PL");
 
         serialPort.writeBytes(buffer, 19);
         serialPort.readBytes(buffer, 1);
-        if (buffer[0] == deviceActions.get("READY_B")) {
-            double totalTime = (deviceSettings.maxF - deviceSettings.minF) / deviceSettings.freqStep * deviceSettings.timeStep;
+        if (buffer[0] == Commands.deviceActions.get("READY_B")) {
+            double totalTime = ((int)settings.maxF - (int)settings.minF) / (int)settings.freqStep * (int)settings.timeStep;
             log.info("Timeout " + totalTime + " ms");
             serialPort.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING | SerialPort.TIMEOUT_WRITE_BLOCKING, (int) (totalTime * 1.2), 100);
-            int i = (deviceSettings.maxF - deviceSettings.minF) / deviceSettings.freqStep;
+            int i = (int) ((settings.maxF - settings.minF) / settings.freqStep);
             final long sweepStartTime = System.currentTimeMillis();
             serialPort.addDataListener(new SerialPortPacketListener() {
                 @Override
@@ -128,9 +116,9 @@ public class ConnectionService extends Service<String> {
                 public void serialEvent(SerialPortEvent serialPortEvent) {
                     byte[] newData = serialPortEvent.getReceivedData();
                     System.out.println("Received data of size: " + newData.length + "\n");
-                    if (newData[newData.length - 1] == deviceActions.get("SWEEP_END_B")) {
+                    if (newData[newData.length - 1] == Commands.deviceActions.get("SWEEP_END_B")) {
                         System.out.println("sweep end " + (System.currentTimeMillis() - sweepStartTime));
-                        controllerAction = controllerActions.HEARTBEAT;
+                        settings.activeAction = controllerActions.HEARTBEAT;
                         serialPort.removeDataListener();
                     }
                 }
@@ -140,7 +128,7 @@ public class ConnectionService extends Service<String> {
 
     @Override
     protected Task<String> createTask() {
-        switch (controllerAction) {
+        switch (settings.activeAction) {
             case BEGIN_COMM -> { return new BeginCommTask(); }
             case HEARTBEAT -> { return new HeartbeatTask(); }
             case SEND_SF -> { return new SendFrequencyTask(); }
@@ -168,14 +156,14 @@ public class ConnectionService extends Service<String> {
             serialPort.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING | SerialPort.TIMEOUT_WRITE_BLOCKING, 3000, 100);
             Arrays.fill(buffer, (byte) 0);
             serialPort.readBytes(buffer, 1);
-            if (buffer[0] != deviceActions.get("HANDSHAKE_B"))
+            if (buffer[0] != Commands.deviceActions.get("HANDSHAKE_B"))
                 throw new Exception("bad response");
-            buffer[0] = deviceActions.get("HANDSHAKE_B");
+            buffer[0] = Commands.deviceActions.get("HANDSHAKE_B");
             serialPort.writeBytes(buffer, 1);
             serialPort.readBytes(buffer, 1);
-            if (buffer[0] == deviceActions.get("HANDSHAKE_B")) {
+            if (buffer[0] == Commands.deviceActions.get("HANDSHAKE_B")) {
                 Platform.runLater(() -> deviceStateProperty.setValue(deviceStates.StandBy));
-                controllerAction = controllerActions.HEARTBEAT;
+                settings.activeAction = controllerActions.HEARTBEAT;
                 log.info("connection with " + portDescriptor + " successful");
                 return "successful connection";
             }
@@ -201,17 +189,17 @@ public class ConnectionService extends Service<String> {
         @Override
         protected String call() throws Exception {
             serialPort.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING | SerialPort.TIMEOUT_WRITE_BLOCKING, 100, 100);
-            log.info("sending frequency (freq=" + deviceSettings.freq + ")");
+            log.info("sending frequency (freq=" + (int)settings.freq + ")");
             if (sendFrequency()) {
                 log.info("data transfer successful");
-                if (deviceSettings.freq <=0 )
+                if ((int)settings.freq <=0 )
                     Platform.runLater(() -> deviceStateProperty.setValue(deviceStates.StandBy));
                 else
                     Platform.runLater(() -> deviceStateProperty.setValue(deviceStates.SingleFreq));
             } else {
                 throw new Exception("sending error");
             }
-            controllerAction = controllerActions.HEARTBEAT;
+            settings.activeAction = controllerActions.HEARTBEAT;
             return null;
         }
     }
@@ -221,12 +209,14 @@ public class ConnectionService extends Service<String> {
         protected String call() throws Exception {
             serialPort.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING | SerialPort.TIMEOUT_WRITE_BLOCKING, 100, 100);
             Platform.runLater(() -> deviceStateProperty.setValue(deviceStates.Sweep));
-            log.info(String.format("sending sweep \n\tminF=%d Hz\n\tmaxF=%d Hz\n\ttimeStep=%d ms\n\tfreqStep=%dHz", deviceSettings.minF, deviceSettings.maxF, deviceSettings.timeStep, deviceSettings.freqStep));
+            log.info(String.format("sending sweep \n\tminF=%d Hz\n\tmaxF=%d Hz\n\ttimeStep=%d ms\n\tfreqStep=%dHz", (int)settings.minF, (int)settings.maxF, (int)(settings.timeStep*1000), (int)settings.freqStep));
             sendSweep();
             final long sweepStartTime = System.currentTimeMillis();
-            double totalTime = 1.0 * (deviceSettings.maxF - deviceSettings.minF) / deviceSettings.freqStep * deviceSettings.timeStep;
-            while ((controllerAction == controllerActions.SEND_SW) && ((System.currentTimeMillis() - sweepStartTime) <= totalTime))
-                updateProgress((System.currentTimeMillis() - sweepStartTime), totalTime);
+            double totalTime = (settings.maxF - settings.minF) / settings.freqStep * settings.timeStep;
+            while ((settings.activeAction == controllerActions.SEND_SW) && ((System.currentTimeMillis() - sweepStartTime) <= totalTime * 1000))
+                updateProgress((System.currentTimeMillis() - sweepStartTime), totalTime * 1000);
+
+            settings.activeAction = controllerActions.HEARTBEAT;
             Platform.runLater(() -> deviceStateProperty.setValue(deviceStates.StandBy));
             return null;
         }

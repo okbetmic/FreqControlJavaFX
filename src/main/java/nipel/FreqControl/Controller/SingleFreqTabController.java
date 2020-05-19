@@ -23,8 +23,20 @@ public class SingleFreqTabController extends InjectableController implements Ini
     @FXML TextField freqField;
     @FXML ChoiceBox<Integer> freqFactorBox;
 
-    public void sf_toggle_button_action(ActionEvent actionEvent) {
-        getSettings();
+    public void update() {
+        if (sf_toggle_button.isSelected()) {
+            double freq = Double.parseDouble(freqField.getTextFormatter().getValue().toString());
+            int factor = freqFactorBox.getValue();
+            mainController.settings.freq = (int) (freq * factor);
+        } else {
+            mainController.settings.freq = 0;
+        }
+    }
+
+    @Override
+    public void injectMainController(MainController mainController) {
+        super.injectMainController(mainController);
+        freqField.setText(Double.toString(mainController.settings.freq / freqFactorBox.getValue()));
     }
 
     @Override
@@ -37,17 +49,12 @@ public class SingleFreqTabController extends InjectableController implements Ini
         freqFactorBox.setConverter(new StringConverter<Integer>() {
             @Override
             public String toString(Integer integer) {
-                int f = integer;
-                switch (f) {
-                    case 1:
-                        return "Hz";
-                    case 1000:
-                        return "kHz";
-                    case 1000000:
-                        return "MHz";
-                    default:
-                        return "";
-                }
+                return switch (integer) {
+                    case 1 -> "Hz";
+                    case 1000 -> "kHz";
+                    case 1000000 -> "MHz";
+                    default -> "";
+                };
             }
 
             @Override
@@ -55,17 +62,5 @@ public class SingleFreqTabController extends InjectableController implements Ini
                 return Integer.parseInt(s);
             }
         });
-    }
-
-    @Override
-    public Commands.deviceSettings getSettings() {
-        if (sf_toggle_button.isSelected()) {
-            double freq = Double.parseDouble(freqField.getTextFormatter().getValue().toString());
-            int factor = freqFactorBox.getValue();
-            deviceSettings.freq = (int) (freq * factor);
-        } else {
-            deviceSettings.freq = 0;
-        }
-        return this.deviceSettings;
     }
 }

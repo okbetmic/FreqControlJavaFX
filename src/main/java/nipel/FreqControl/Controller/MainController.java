@@ -2,7 +2,6 @@ package nipel.FreqControl.Controller;
 
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
-import javafx.beans.binding.BooleanBinding;
 import javafx.collections.FXCollections;
 import javafx.concurrent.Worker;
 import javafx.event.ActionEvent;
@@ -14,18 +13,19 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
 import nipel.FreqControl.Util.ConnectionService;
+import nipel.FreqControl.Util.Settings;
+
 import static nipel.FreqControl.Util.Commands.log;
 import static nipel.FreqControl.Util.Commands.deviceStates;
 import static nipel.FreqControl.Util.Commands.controllerActions;
 
+import java.io.*;
 import java.net.URL;
 import java.util.ResourceBundle;
 
 public class MainController implements Initializable {
 
     private double xOffset, yOffset;
-    @FXML private AnchorPane main_pane;
-    @FXML private GridPane info_table;
     @FXML private ChoiceBox<String> device_list;
 
     @FXML private SingleFreqTabController singleFreqTabController;
@@ -40,22 +40,37 @@ public class MainController implements Initializable {
     @FXML private Button connectBtn;
     @FXML private Button disconnectBtn;
 
-
     @FXML TabPane tabPane;
 
     private ConnectionService connection;
 
-    public MainController() {
+    Settings settings;
 
+    public MainController() {
     }
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
+        try {
+            ObjectInputStream objectInputStream = new ObjectInputStream(new FileInputStream("settings.data"));
+            settings = (Settings) objectInputStream.readObject();
+            objectInputStream.close();
+            log.info(String.format("Loaded settings:\n\t%s= %f\n\t%s= %f\n\t%s= %f\n\t%s= %f\n\t%s= %f\n\t%s= %f",
+                    "freq", settings.freq,
+                    "minF", settings.minF,
+                    "maxF", settings.maxF,
+                    "totalTime", settings.totalTime,
+                    "timeStep",settings.timeStep,
+                    "freqStep", settings.freqStep));
+
+        } catch (Exception ex) {
+            settings = new Settings();
+        }
+        connection = new ConnectionService(settings);
+
         xOffset = yOffset = 0;
         singleFreqTabController.injectMainController(this);
         sweepTabController.injectMainController(this);
-
-        connection = new ConnectionService();
 
         deviceModeLabel.textProperty().bind(connection.getDeviceStateProperty().asString());
         sendBtn.disableProperty().bind(Bindings.and(connection.getDeviceStateProperty().isNotEqualTo(deviceStates.StandBy), connection.getDeviceStateProperty().isNotEqualTo(deviceStates.SingleFreq)));
@@ -66,7 +81,8 @@ public class MainController implements Initializable {
 
         refreshBtnAction(new ActionEvent()); // update ports on startup
 
-        connection.setControllerAction(controllerActions.BEGIN_COMM);
+        settings.activeAction = controllerActions.BEGIN_COMM;
+        settings.userAction = controllerActions.SEND_SF;
         connection.setOnSucceeded(ee -> { // main loop
             connection.restart();
         });
@@ -76,8 +92,22 @@ public class MainController implements Initializable {
             connection.reset();
         });
         connection.setOnScheduled(ee -> errorLabel.setText(""));
+
+        tabPane.getSelectionModel().selectedIndexProperty().addListener(e -> updateTabData());
     }
 
+    private void updateTabData() {
+        switch (tabPane.getSelectionModel().getSelectedIndex()) {
+            case 0 -> {
+                settings.userAction = controllerActions.SEND_SF;
+                singleFreqTabController.update();
+            }
+            case 1 -> {
+                settings.userAction = controllerActions.SEND_SW;
+                sweepTabController.update();
+            }
+        }
+    }
     // device control buttons
     public void refreshBtnAction(ActionEvent e) {
         String o = device_list.getSelectionModel().getSelectedItem();
@@ -91,7 +121,7 @@ public class MainController implements Initializable {
     public void connectBtnAction(ActionEvent e) {
         String portDescriptor = device_list.getValue();
         connection.setPortDescriptor(portDescriptor);
-        connection.setControllerAction(controllerActions.BEGIN_COMM);
+        settings.activeAction = controllerActions.BEGIN_COMM;
         if (connection.getState() == Worker.State.READY)
             connection.start();
     }
@@ -102,18 +132,8 @@ public class MainController implements Initializable {
     }
 
     public void sendBtnAction(ActionEvent actionEvent) {
-        switch (tabPane.getSelectionModel().getSelectedIndex()) {
-            case 0: // single frequency
-                connection.setControllerAction(controllerActions.SEND_SF);
-                connection.setSettings(singleFreqTabController.getSettings());
-                break;
-            case 1: // sweep
-                connection.setControllerAction(controllerActions.SEND_SW);
-                connection.setSettings(sweepTabController.getSettings());
-                break;
-            default:
-                break;
-        }
+        updateTabData();
+        settings.activeAction = settings.userAction;
     }
 
     //window control
@@ -122,6 +142,14 @@ public class MainController implements Initializable {
     }
 
     public void close_btn_action(ActionEvent e) {
+        try {
+            ObjectOutputStream objectOutputStream = new ObjectOutputStream(new FileOutputStream("settings.data"));
+            objectOutputStream.writeObject(settings);
+            objectOutputStream.close();
+        } catch (IOException ioException) {
+            ioException.printStackTrace();
+        }
+
         disconnectBtnAction(e);
         Platform.exit();
         System.exit(0);

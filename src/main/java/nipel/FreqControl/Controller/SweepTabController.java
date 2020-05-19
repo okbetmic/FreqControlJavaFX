@@ -1,8 +1,6 @@
 package nipel.FreqControl.Controller;
 
-import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -21,110 +19,50 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.ResourceBundle;
 
+import static nipel.FreqControl.Controller.SettingPane.SettingType;
+
 public class SweepTabController extends  InjectableController implements Initializable {
 
     @FXML VBox topSettingBox;
-    private ListView<String> radioSettingsList;
 
-    private ArrayList settingsPanes;
     private final ObservableList<Double> freqFactorList = FXCollections.observableArrayList(Arrays.asList(1.0, 1000.0, 1000000.0));
-    private final ObservableList<Double> timeFactorList = FXCollections.observableArrayList(Arrays.asList(1.0, 1.0/1000, 1.0/1000000));
+    private final ObservableList<Double> timeFactorList = FXCollections.observableArrayList(Arrays.asList(1.0/1000, 1.0));
 
-    private final StringConverter freqFactorConverter = new StringConverter<Double>() {
-        @Override
-        public String toString(Double d) {
-            String rs = "";
-            if (d == 1.0)
-                rs = "Hz";
-            else if (d == 1000.0)
-                rs = "kHz";
-            else if (d == 1000000.0)
-                rs = "MHz";
-            return rs;
-        }
-
-        @Override
-        public Double fromString(String s) {
-            Double rs = 0.0;
-            switch (s) {
-                case "Hz":
-                    rs = 1.0;
-                    break;
-                case "kHz":
-                    rs = 1000.0;
-                    break;
-                case "MHz":
-                    rs = 1000000.0;
-                    break;
-            }
-            return rs;
-        }
-    };
-
-    private final StringConverter timeFactorConverter = new StringConverter<Double>() {
-        @Override
-        public String toString(Double d) {
-            String rs = "";
-            if (d == 1.0)
-                rs = "s";
-            else if (d == 1.0/1000)
-                rs = "ms";
-            else if (d == 1.0/1000000)
-                rs = "us";
-            return rs;
-        }
-
-        @Override
-        public Double fromString(String s) {
-            Double rs = 0.0;
-            switch (s) {
-                case "s":
-                    rs = 1.0;
-                    break;
-                case "ms":
-                    rs = 1.0/1000;
-                    break;
-                case "us":
-                    rs = 1.0/1000000;
-                    break;
-            }
-            return rs;
-        }
-    };
-
-    private ToggleGroup toggleGroup = new ToggleGroup();
-    private ObservableList settingsModeStringList = FXCollections.observableArrayList(Arrays.asList("Total time + Time step",
+    private final ToggleGroup toggleGroup = new ToggleGroup();
+    private final ObservableList<String> settingsModeStringList = FXCollections.observableArrayList(Arrays.asList("Total time + Time step",
             "Total time + Frequency step",
             "Time step + Frequency step"));
     private enum settingsModes {
         TsFs, TtFs, TtTs
-    }; settingsModes settingsMode;
+    }
+    settingsModes settingsMode;
+
+    private Runnable updateValuesRunnable = () -> update();
+
+    ArrayList<SettingPane> settingsPanes = new ArrayList<>(Arrays.asList(
+            new SettingPane("Min frequency", freqFactorList, SettingType.Frequency, updateValuesRunnable),
+            new SettingPane("Max frequency", freqFactorList, SettingType.Frequency, updateValuesRunnable),
+            new SettingPane("Total time", timeFactorList, SettingType.Time, updateValuesRunnable),
+            new SettingPane("Time step", timeFactorList, SettingType.Time, updateValuesRunnable),
+            new SettingPane("Frequency step", freqFactorList, SettingType.Frequency, updateValuesRunnable),
+            new SettingPane("Step count")));
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-        settingsPanes = new ArrayList<SettingPane>();
-        settingsPanes.addAll(Arrays.asList(
-                new SettingPane("Min frequency", freqFactorList, freqFactorConverter),
-                new SettingPane("Max frequency", freqFactorList, freqFactorConverter),
-                new SettingPane("Total time", timeFactorList, timeFactorConverter),
-                new SettingPane("Time step", timeFactorList, timeFactorConverter),
-                new SettingPane("Frequency step", freqFactorList, freqFactorConverter),
-                new SettingPane("Step count")
-                ));
-        radioSettingsList = new ListView<String>(settingsModeStringList);
+        ListView<String> radioSettingsList = new ListView<>(settingsModeStringList);
         radioSettingsList.setPrefSize(Region.USE_COMPUTED_SIZE, 75);
         radioSettingsList.setFocusTraversable(false);
         radioSettingsList.setPadding(new Insets(0,0,0,0));
         radioSettingsList.setCellFactory(param -> new RadioListCell());
         toggleGroup.selectedToggleProperty().addListener((observableValue, toggle, t1) -> {
             String selected = ((RadioButton)t1).getText();
-            if (selected == settingsModeStringList.get(0))
+            if (selected.equals(settingsModeStringList.get(0)))
                 settingsMode = settingsModes.TtTs;
-            else if (selected == settingsModeStringList.get(1))
+            else if (selected.equals(settingsModeStringList.get(1)))
                 settingsMode = settingsModes.TtFs;
-            else if (selected == settingsModeStringList.get(2))
+            else if (selected.equals(settingsModeStringList.get(2)))
                 settingsMode = settingsModes.TsFs;
-            updateDeviceSettings();
+            changeEnabledFields();
         });
         settingsMode = settingsModes.TsFs;
         topSettingBox.setSpacing(5.0);
@@ -133,89 +71,15 @@ public class SweepTabController extends  InjectableController implements Initial
         topSettingBox.setPadding(new Insets(10, 10, 10, 10));
     }
 
-    private class SettingPane extends AnchorPane {
-        public Label settingLabel;
-        public TextField settingField;
-        public ChoiceBox<Double> settingFactorBox;
-
-        public void activate(boolean en) {
-            settingField.setDisable(!en);
-            settingFactorBox.setDisable(!en);
-        }
-
-        public Double getDoubleValueSafe() {
-            Double rs;
-            rs = Double.parseDouble(settingField.textProperty().get()) * settingFactorBox.getValue();
-            return rs;
-        }
-        public void setDoubleValueSafe(Double d) {
-            settingField.textProperty().removeListener(listener);
-            if (d != Double.POSITIVE_INFINITY && d != Double.NEGATIVE_INFINITY) {
-                if (!settingFactorBox.getItems().isEmpty())
-                    settingField.setText(((Double) (d / settingFactorBox.getValue())).toString());
-                else
-                    settingField.setText(d.toString());
-            }
-            settingField.textProperty().addListener(listener);
-        }
-
-        ChangeListener listener = new ChangeListener<String>() {
-            @Override
-            public void changed(ObservableValue<? extends String> observableValue, String s, String t1) {
-                updateDeviceSettings();
-            }
-        };
 
 
-        public SettingPane(String text) {
-            super();
-            settingLabel = new Label(text);
-            settingField = new TextField();
-
-            if (text == "Step count")
-                settingField.setDisable(true);
-
-            settingField.setTextFormatter(DoubleFieldValidator.getDoubleTextFormatter());
-            settingField.textProperty().addListener(listener);
-
-            settingLabel.setMaxHeight(Double.MAX_VALUE);
-            setTopAnchor(settingLabel, 0.0);
-            setBottomAnchor(settingLabel, 0.0);
-            setLeftAnchor(settingLabel, 0.0);
-            settingLabel.setAlignment(Pos.CENTER);
-
-            settingField.setMaxHeight(Double.MAX_VALUE);
-            setTopAnchor(settingField, 0.0);
-            setBottomAnchor(settingField, 0.0);
-            setRightAnchor(settingField, 65.0);
-            settingLabel.setAlignment(Pos.CENTER);
-
-            settingFactorBox = new ChoiceBox();
-            settingFactorBox.setDisable(true);
-
-            getChildren().addAll(settingLabel, settingField);
-            setPadding(new Insets(3, 3, 5, 3));
-            setPrefSize(310, USE_COMPUTED_SIZE);
-        }
-
-        public SettingPane(String text, ObservableList els, StringConverter converter) {
-            this(text);
-            //elements
-            settingFactorBox = new ChoiceBox();
-            settingFactorBox.getItems().addAll(els);
-            settingFactorBox.setConverter(converter);
-            settingFactorBox.setValue(1.0);
-            settingFactorBox.setDisable(false);
-            //settingFactorBox.getSelectionModel().selectedIndexProperty().addListener((e) -> updateDeviceSettings());
-            settingFactorBox.setOnAction((e) -> updateDeviceSettings());
-            //ui
-            settingFactorBox.setPrefSize(50, 25);
-            settingFactorBox.setMaxHeight(Double.MAX_VALUE);
-            setTopAnchor(settingFactorBox, 0.0);
-            setBottomAnchor(settingFactorBox, 0.0);
-            setRightAnchor(settingFactorBox, 0.0);
-            getChildren().add(settingFactorBox);
-        }
+    @Override
+    public void injectMainController(MainController mainController) {
+        super.injectMainController(mainController);
+        settingsPanes.get(0).setValue(mainController.settings.minF);
+        settingsPanes.get(1).setValue(mainController.settings.maxF);
+        settingsPanes.get(3).setValue(mainController.settings.timeStep);
+        settingsPanes.get(4).setValue(mainController.settings.freqStep);
     }
 
     private class RadioListCell extends ListCell<String> {
@@ -239,67 +103,84 @@ public class SweepTabController extends  InjectableController implements Initial
         }
     }
 
-    private void updateDeviceSettings() {
+    private void changeEnabledFields() {
+        if (settingsPanes.get(1).getDoubleValue() - settingsPanes.get(0).getDoubleValue() > 0)
+            switch (settingsMode) {
+                case TtTs -> { // total time + time step
+                    settingsPanes.get(2).active(true);
+                    settingsPanes.get(3).active(true);
+                    settingsPanes.get(4).active(false);
+                }
+                case TtFs -> { // total time + freq step
+                    settingsPanes.get(2).active(true);
+                    settingsPanes.get(4).active(true);
+                    settingsPanes.get(3).active(false);
+                }
+                case TsFs -> { // time step + frequency step
+                    settingsPanes.get(3).active(true);
+                    settingsPanes.get(4).active(true);
+                    settingsPanes.get(2).active(false);
+                }
+            }
+        else {
+            settingsPanes.get(3).active(false);
+            settingsPanes.get(4).active(false);
+            settingsPanes.get(2).active(false);
+        }
+
+    }
+
+    public void update() {
         if (settingsPanes.size() < 6)
             return;
-        //extract ass possible
-        Double minF, maxF, totalTime, timeStep, freqStep, stepCnt = 0.0;
-        minF = ((SettingPane)settingsPanes.get(0)).getDoubleValueSafe(); // Hz
-        maxF = ((SettingPane)settingsPanes.get(1)).getDoubleValueSafe(); // Hz
-        totalTime = ((SettingPane)settingsPanes.get(2)).getDoubleValueSafe(); // s
-        timeStep = ((SettingPane)settingsPanes.get(3)).getDoubleValueSafe(); // !!! s -> ms !!!
-        freqStep = ((SettingPane)settingsPanes.get(4)).getDoubleValueSafe(); // Hz
+
+        // here we get try to get values
+        double minF, maxF, totalTime, timeStep, freqStep, stepCnt = 0;
+        minF = settingsPanes.get(0).getDoubleValue(); // Hz
+        maxF = settingsPanes.get(1).getDoubleValue(); // Hz
+        totalTime = settingsPanes.get(2).getDoubleValue(); // s
+        timeStep = settingsPanes.get(3).getDoubleValue(); // ms
+        freqStep = settingsPanes.get(4).getDoubleValue(); // Hz
+
+        if ((maxF - minF) <= 0)
+            return;
 
         switch (settingsMode) {
-            case TtTs: { // total time + time step
-                ((SettingPane) settingsPanes.get(2)).activate(true);
-                ((SettingPane) settingsPanes.get(3)).activate(true);
-                ((SettingPane) settingsPanes.get(4)).activate(false);
-
+            case TtTs -> { // total time + time step
                 if (timeStep <= 0 || totalTime <= 0)
                     return;
                 stepCnt = totalTime / timeStep;
                 freqStep = (maxF - minF) / stepCnt;
-                ((SettingPane) settingsPanes.get(4)).setDoubleValueSafe(freqStep);
-                break;
+                settingsPanes.get(4).setValue(freqStep);
             }
-            case TtFs: { // total time + freq step
-                ((SettingPane) settingsPanes.get(2)).activate(true);
-                ((SettingPane) settingsPanes.get(4)).activate(true);
-                ((SettingPane) settingsPanes.get(3)).activate(false);
-
+            case TtFs -> { // total time + freq step
                 if (freqStep <= 0 || totalTime <= 0)
                     return;
                 stepCnt = (maxF - minF) / freqStep;
                 timeStep = totalTime / stepCnt;
-                ((SettingPane) settingsPanes.get(3)).setDoubleValueSafe(timeStep);
-
-                break;
+                settingsPanes.get(3).setValue(timeStep);
             }
-            case TsFs: { // time step + frequency step
-                ((SettingPane) settingsPanes.get(3)).activate(true);
-                ((SettingPane) settingsPanes.get(4)).activate(true);
-                ((SettingPane) settingsPanes.get(2)).activate(false);
-
+            case TsFs -> { // time step + frequency step
                 if (timeStep <= 0 || freqStep <= 0)
                     return;
                 stepCnt = (maxF - minF) / freqStep;
                 totalTime = timeStep * stepCnt;
-                ((SettingPane) settingsPanes.get(2)).setDoubleValueSafe(totalTime);
-                break;
+                settingsPanes.get(2).setValue(totalTime);
             }
         }
-        ((SettingPane) settingsPanes.get(5)).setDoubleValueSafe(stepCnt);
-        //simple validate
-        /*if ((totalTime < 1) || (freqStep < 1) || timeStep < 1) {
-            System.out.println("invalid");
-            return;
-        }*/
+        System.out.println("step cnt" + stepCnt);
+        settingsPanes.get(5).setValue(stepCnt);
 
-        deviceSettings.minF = (int) Math.round(minF);
-        deviceSettings.maxF = (int) Math.round(maxF);
-        deviceSettings.timeStep = (int) Math.round(timeStep * 1000);
-        deviceSettings.freqStep = (int) Math.round(freqStep);
+        // now check the calculations
+        //if ()
+
+        // finally pass data settings to main controller
+        System.out.println(timeStep);
+        mainController.settings.minF = minF;
+        mainController.settings.maxF = maxF;
+        mainController.settings.timeStep = timeStep; // s -> ms
+        mainController.settings.freqStep = freqStep;
+        mainController.settings.totalTime = totalTime;
     }
 
     /*@FXML private TextField minFreqField;
